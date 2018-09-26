@@ -36,11 +36,9 @@ fn main() -> std::io::Result<()> {
 
     let worker = thread::spawn(move || {
         loop {
-            let mut length = 0;
-            {
-                let temp = q.lock().unwrap();
-                length = temp.len();
-            }
+            let length = match q.lock().unwrap() {
+                q => q.len()
+            };
             if length < 1 {
                 println!("Worker thread yielding");
                 thread::park();
