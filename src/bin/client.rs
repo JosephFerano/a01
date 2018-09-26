@@ -15,7 +15,7 @@ fn main() -> std::io::Result<()> {
             process::exit(1);
         });
 
-    let endpoint = get_endpoint(args.get(1), args.get(2))
+    let endpoint = parse_endpoint(args.get(1), args.get(2))
         .unwrap_or_else(|e| {
             eprintln!("Endpoint Parsing Error: {}", e);
             process::exit(1);
