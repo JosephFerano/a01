@@ -1,17 +1,11 @@
 use std::net;
 use std::str::FromStr;
 
-pub fn get_address(args : &Vec<String>) -> Result<net::SocketAddrV4, &'static str> {
+pub fn get_endpoint(ip_arg : Option<&String>, port_arg : Option<&String>)-> Result<net::SocketAddrV4, String> {
+    let ip_str = ip_arg.ok_or(String::from("No IP argument provided"))?;
+    let port_str = port_arg.ok_or(String::from("No Port argument provided"))?;
 
-    let ip_str = match args.get(1) {
-        Some(a) => a,
-        None => return Err("No IP argument provided"),
-    };
-    let port_str = match args.get(2) {
-        Some(a) => a,
-        None => return Err("No Port argument provided"),
-    };
-    let ip = net::Ipv4Addr::from_str(&ip_str);
-    let port : u16 = port_str.parse().unwrap();
-    Ok(net::SocketAddrV4::new(ip.unwrap(), port))
+    let ip = net::Ipv4Addr::from_str(&ip_str).map_err(|e| e.to_string())?;
+    let port : u16 = port_str.parse().map_err(|_| String::from("Invalid Port number provided"))?;
+    Ok(net::SocketAddrV4::new(ip, port))
 }
