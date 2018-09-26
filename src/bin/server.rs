@@ -30,7 +30,7 @@ fn main() -> std::io::Result<()> {
 
     println!("Server Connected, listening...");
 
-    let mut buf = [0; 10];
+    let mut buf : [u8; 8] = [0; 8];
     let queue : Arc<Mutex<VecDeque<MobileMessage>>> = Arc::new(Mutex::new(VecDeque::new()));
     let q = queue.clone();
 
@@ -60,6 +60,12 @@ fn main() -> std::io::Result<()> {
                 for i in 0..byte_count {
                     println!("{}", buf[i]);
                 }
+                let test = vec![0..4];
+
+                let mut id_buf = get_little_endian_int();
+                let mut time_buf = unsafe {
+                    std::mem::transmute::<[u8; 4], u32>(rand::thread_rng().gen_range(0, 3000))
+                };
                 queue.lock().unwrap().push_back(MobileMessage { id : 1 , job_time_in_ms : 1000 });
                 worker.thread().unpark()
             },
@@ -68,6 +74,20 @@ fn main() -> std::io::Result<()> {
         thread::sleep(Duration::from_millis(150));
     }
 
+}
+//fn first_half(a: [u8; 8]) -> [u8; 4] {
+//  let mut h = [0; 4];
+//  h.copy_from_slice(&a[0..4]);
+//  h
+//}
+//
+//fn main() {
+//  println!("{:?}", first_half([3;8]));
+//}
+fn get_little_endian_int(buf : [u8; 8]) -> u32 {
+    unsafe {
+        std::mem::transmute::<[u8; 4], u32>([buf[3], buf[2], buf[1], buf[0]])
+    }
 }
 
 #[derive(Debug)]

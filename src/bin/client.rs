@@ -1,9 +1,11 @@
 extern crate a01;
+extern crate rand;
 
 use std::env;
 use a01::*;
 use std::process;
 use std::net::UdpSocket;
+use rand::Rng;
 
 fn main() -> std::io::Result<()> {
     let args : Vec<String> = env::args()
@@ -32,21 +34,30 @@ fn main() -> std::io::Result<()> {
             process::exit(1);
         });
 
-//    socket.connect("127.0.0.1:8080").expect("Something went wrong");
+    let mut id_buf = unsafe {
+        std::mem::transmute::<u32, [u8; 4]>(mobile_id)
+    };
+    let mut time_buf = unsafe {
+        std::mem::transmute::<u32, [u8; 4]>(rand::thread_rng().gen_range(0, 3000))
+    };
 
-    let mut buf : Vec<u8> = Vec::with_capacity(128);
-    buf.push(0x00);
-    buf.push(0x0f);
-    buf.push(0xf0);
-//    socket.send_to(&[0; 10], endpoint)?;
-    socket.send_to(buf.as_mut_slice(), endpoint)?;
+    let mut buf : [u8; 8] = [0; 8];
+    for i in 0..buf.len() {
+        if i < 4 {
+            buf[i] = id_buf[i];
+        } else {
+            buf[i] = time_buf[i - 4];
+        }
+    }
+
+    socket.send_to(&buf, endpoint)?;
 
     Ok(())
 }
 
-fn parse_id(id_arg : Option<&String>) -> Result<usize, String> {
+fn parse_id(id_arg : Option<&String>) -> Result<u32, String> {
     match id_arg {
         None => Err(String::from("No MobileId argument provided")),
-        Some(a) => a.parse::<usize>().map_err(|_| String::from("Invalid MobileId provided")),
+        Some(a) => a.parse::<u32>().map_err(|_| String::from("Invalid MobileId provided")),
     }
 }
