@@ -25,10 +25,8 @@ fn main() -> std::io::Result<()> {
             process::exit(1);
         });
 
-//    socket.connect("127.0.0.1:8080").expect("Something went wrong");
-    println!("Server Connected");
+    println!("Server Connected, listening...");
 
-//    let mut buf : Vec<u8> = Vec::with_capacity(128);
     let mut buf = [0; 10];
 
     loop {
