@@ -11,21 +11,27 @@ use std::thread;
 use std::time::Duration;
 
 fn main() -> std::io::Result<()> {
+    // Get the command line args
     let args : Vec<String> = env::args()
         .skip(1) // Skip the first argument, it's the app name
         .collect();
     let mobile_id = parse_id(args.get(0))
+        // This function either gets the parsed id or invokes this lambda/anonymous function
+        // which invokes an error that can be redirected to sterr
         .unwrap_or_else(|e| {
             eprintln!("MobileId Parsing Error: {}", e);
             process::exit(1);
         });
 
+    // We get the args and pass them to parse the endpoint
     let endpoint = parse_endpoint(args.get(1), args.get(2))
         .unwrap_or_else(|e| {
             eprintln!("Endpoint Parsing Error: {}", e);
             process::exit(1);
         });
 
+    // Get the client port so we can bind to a UDP socket, we need to get this from the
+    // command line, unless we're prepared to just try random ports
     let client_port = parse_client_port(args.get(3))
         .unwrap_or_else(|e| {
             eprintln!("Client Port Parsing Error: {}", e);
@@ -37,8 +43,14 @@ fn main() -> std::io::Result<()> {
         endpoint.ip(),
         endpoint.port());
 
+    // Create an IP
     let local = net::Ipv4Addr::new(127, 0, 0, 1);
-    let socket = UdpSocket::bind(std::net::SocketAddrV4::new(local, client_port as u16))
+    // Create the Socket Address that we will bind to, not the server endpoint, that's later
+    let socket_addr = std::net::SocketAddrV4::new(local, client_port as u16);
+    // Here we bind to the UDP socket. The bind() function returns a Result<T, E>, where
+    // T is a Socket and E is an error. First we create
+    let socket = UdpSocket::bind(socket_addr)
+        // Same thing as before, either return the socket, or throw the error in this lambda
         .unwrap_or_else(|e| {
             eprintln!("Connection Error: {}", e);
             process::exit(1);
@@ -46,16 +58,27 @@ fn main() -> std::io::Result<()> {
 
     println!("Connected!");
 
+    // Rust requires us to mark certain operations as unsafe, taking raw bits or data types and
+    // conveting them into others is one of them. Here, transmute converts an unsigned 32-bit
+    // integer into an array of bytes (unsigned 8 bit) with a size of 4. Rust also requires
+    // that the size is known at compile time. This prepares the mobile_id number to be sent
+    // over the wire via UDP
     let id_buf = unsafe {
         std::mem::transmute::<u32, [u8; 4]>(mobile_id)
     };
 
+    // Loops are simple in Rust
     loop {
+        // Random number between 500 and 3500 for milliseconds to send to the server
         let random = rand::thread_rng().gen_range(500, 3500);
+        // Same as previous unsafe call, this one is nested in the loop cause it changes
+        // every cycle, no need to do that for the mobile_id, it doesn't change
         let time_buf = unsafe {
             std::mem::transmute::<u32, [u8; 4]>(random)
         };
 
+        // We create a buffer of size 8 and populate it with the mobile_id and the random time
+        // Buf will then be sent over the wire
         let mut buf : [u8; 8] = [0; 8];
         for i in 0..buf.len() {
             if i < 4 {
@@ -66,14 +89,21 @@ fn main() -> std::io::Result<()> {
         }
 
         println!("Sending job that will take {} milliseconds", random);
+        // Off we go!
         socket.send_to(&buf, endpoint)?;
         let sleep_rand = rand::thread_rng().gen_range(1000, 5000);
         println!("Sent! Sleeping for {}", sleep_rand);
+        // Now we sleep till the next iteration
         thread::sleep(Duration::from_millis(sleep_rand));
     }
 
 }
 
+// The function array.get() returns and Option, which can be either None or Some<T>
+// We pattern match to extract the values, returning errors as strings when something goes wrong
+// If no parameter was passed in through the terminal, we get the None case. If Some, we attempt
+// to parse to unsigned 32-bit integer. If that causes and error, the user didn't provide a valid
+// integer. map_err converts one error type to anothre
 fn parse_id(id_arg : Option<&String>) -> Result<u32, String> {
     match id_arg {
         None => Err(String::from("No MobileId argument provided")),
@@ -81,6 +111,7 @@ fn parse_id(id_arg : Option<&String>) -> Result<u32, String> {
     }
 }
 
+// Same principle as the previous function
 fn parse_client_port(port_arg : Option<&String>) -> Result<u32, String> {
     match port_arg {
         None => Err(String::from("No Client Port argument provided")),
