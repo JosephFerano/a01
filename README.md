@@ -4,7 +4,7 @@ To run the server, run
 ```./server <IP> <PORT>```
 
 For the client, run
-```./client <MOBILE_ID> <IP> <PORT>```
+```./client <MOBILE_ID> <IP> <SERVER_PORT> <CLIENT_PORT>```
 
 Run as many of them as you want.
 

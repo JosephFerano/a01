@@ -48,7 +48,7 @@ fn main() -> std::io::Result<()> {
                 println!("Processing job for MobileId {} for {} milliseconds ",
                     mm.id,
                     mm.job_time_in_ms);
-                thread::sleep(Duration::from_millis(mm.job_time_in_ms));
+                thread::sleep(Duration::from_millis(mm.job_time_in_ms as u64));
             }
         }
     });
@@ -57,16 +57,9 @@ fn main() -> std::io::Result<()> {
         match socket.recv_from(&mut buf) {
             Ok((byte_count, source_endpoint)) => {
                 println!("Got {} bytes from {}", byte_count, source_endpoint);
-                for i in 0..byte_count {
-                    println!("{}", buf[i]);
-                }
-                let test = vec![0..4];
-
-                let mut id_buf = get_little_endian_int();
-                let mut time_buf = unsafe {
-                    std::mem::transmute::<[u8; 4], u32>(rand::thread_rng().gen_range(0, 3000))
-                };
-                queue.lock().unwrap().push_back(MobileMessage { id : 1 , job_time_in_ms : 1000 });
+                let mm = MobileMessage { id : get_int(0, buf) , job_time_in_ms : get_int(4, buf) };
+                println!("{:?}", mm);
+                queue.lock().unwrap().push_back(mm);
                 worker.thread().unpark()
             },
             Err(e) => println!("Error : {}", e),
@@ -75,24 +68,16 @@ fn main() -> std::io::Result<()> {
     }
 
 }
-//fn first_half(a: [u8; 8]) -> [u8; 4] {
-//  let mut h = [0; 4];
-//  h.copy_from_slice(&a[0..4]);
-//  h
-//}
-//
-//fn main() {
-//  println!("{:?}", first_half([3;8]));
-//}
-fn get_little_endian_int(buf : [u8; 8]) -> u32 {
-    unsafe {
-        std::mem::transmute::<[u8; 4], u32>([buf[3], buf[2], buf[1], buf[0]])
-    }
+
+fn get_int(start_index: usize, buf : [u8; 8]) -> u32 {
+    let mut h = [0; 4];
+    h.copy_from_slice(&buf[start_index..(start_index + 4)]);
+    unsafe { std::mem::transmute::<[u8; 4], u32>(h) }
 }
 
 #[derive(Debug)]
 struct MobileMessage {
-    id : usize,
-    job_time_in_ms : u64,
+    id : u32,
+    job_time_in_ms : u32,
 }
 
