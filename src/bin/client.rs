@@ -10,6 +10,11 @@ use rand::Rng;
 use std::thread;
 use std::time::Duration;
 
+static MIN_JOB_TIME_MS : u32 = 500;
+static MAX_JOB_TIME_MS : u32 = 3500;
+static MIN_SLEEP_TIME_MS : u64 = 1000;
+static MAX_SLEEP_TIME_MS : u64 = 5000;
+
 fn main() -> std::io::Result<()> {
     // Get the command line args
     let args : Vec<String> = env::args()
@@ -70,7 +75,7 @@ fn main() -> std::io::Result<()> {
     // Loops are simple in Rust
     loop {
         // Random number between 500 and 3500 for milliseconds to send to the server
-        let random = rand::thread_rng().gen_range(500, 3500);
+        let random = rand::thread_rng().gen_range(MIN_JOB_TIME_MS, MAX_JOB_TIME_MS);
         // Same as previous unsafe call, this one is nested in the loop cause it changes
         // every cycle, no need to do that for the mobile_id, it doesn't change
         let time_buf = unsafe {
@@ -91,7 +96,7 @@ fn main() -> std::io::Result<()> {
         println!("Sending job that will take {} milliseconds", random);
         // Off we go!
         socket.send_to(&buf, endpoint)?;
-        let sleep_rand = rand::thread_rng().gen_range(1000, 5000);
+        let sleep_rand = rand::thread_rng().gen_range(MIN_SLEEP_TIME_MS, MAX_SLEEP_TIME_MS);
         println!("Sent! Sleeping for {}", sleep_rand);
         // Now we sleep till the next iteration
         thread::sleep(Duration::from_millis(sleep_rand));
