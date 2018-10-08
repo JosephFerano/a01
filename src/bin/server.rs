@@ -45,11 +45,14 @@ fn main() -> std::io::Result<()> {
     // Next is the Mutex. This provides the mutal exclusion neeed to keep our data thread safe
     // then we have a VecDeque which is just a vector with nice functions that allow us to mimic
     // a queue.
+    let empty : Arc<Semaphore> = Arc::new(Semaphore::new(0));
+    let full : Arc<Semaphore> = Arc::new(Semaphore::new(0));
     let queue : Arc<Mutex<VecDeque<MobileMessage>>> = Arc::new(Mutex::new(VecDeque::new()));
 
     // This clone's the reference and ups the count of the Arc<T> async smart pointer.
     // Note that this is NOT a duplicate queue in memory.
     let q = queue.clone();
+    let s = semaphore.clone();
 
     // When we spawn the worker thread, we do so inside a lambda with the "move" keyword.
     // The reason for this keywoard is because it captures and takes ownership of the "q" variable

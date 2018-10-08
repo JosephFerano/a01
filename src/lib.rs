@@ -1,5 +1,7 @@
 use std::net;
 use std::str::FromStr;
+use std::ops::Drop;
+use std::sync::{Condvar, Mutex};
 
 // Helper function shared between client and server to parse the command line arguments
 // and convert into an endpoint
@@ -13,3 +15,46 @@ pub fn parse_endpoint(ip_arg : Option<&String>, port_arg : Option<&String>) -> R
     Ok(net::SocketAddrV4::new(ip, port))
 }
 
+pub struct Semaphore {
+    lock : Mutex<isize>,
+    cvar : Condvar,
+}
+
+pub struct SemaphoreGuard<'a> {
+    sem : &'a Semaphore,
+}
+
+impl Semaphore {
+
+    pub fn new(count : isize) -> Semaphore {
+        Semaphore {
+            lock : Mutex::new(count),
+            cvar : Condvar::new(),
+        }
+    }
+
+    pub fn acquire(&self) {
+        let mut count = self.lock.lock().unwrap();
+        while *count <= 0 {
+            count = self.cvar.wait(count).unwrap();
+        }
+        *count -= 1;
+    }
+
+    pub fn release(&self) {
+        *self.lock.lock().unwrap() += 1;
+        self.cvar.notify_one();
+    }
+
+    pub fn access(&self) -> SemaphoreGuard {
+        self.acquire();
+        SemaphoreGuard { sem : self }
+    }
+
+}
+
+impl<'a> Drop for SemaphoreGuard<'a> {
+    fn drop(&mut self) {
+        self.sem.release();
+    }
+}
