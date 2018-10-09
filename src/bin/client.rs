@@ -10,10 +10,10 @@ use rand::Rng;
 use std::thread;
 use std::time::Duration;
 
-static MIN_JOB_TIME_MS : u32 = 500;
-static MAX_JOB_TIME_MS : u32 = 3500;
-static MIN_SLEEP_TIME_MS : u64 = 1000;
-static MAX_SLEEP_TIME_MS : u64 = 5000;
+static MIN_JOB_TIME_MS : u32 = 6000;
+static MAX_JOB_TIME_MS : u32 = 6500;
+static MIN_SLEEP_TIME_MS : u64 = 100;
+static MAX_SLEEP_TIME_MS : u64 = 500;
 
 fn main() -> std::io::Result<()> {
     // Get the command line args
@@ -68,13 +68,13 @@ fn main() -> std::io::Result<()> {
     // integer into an array of bytes (unsigned 8 bit) with a size of 4. Rust also requires
     // that the size is known at compile time. This prepares the mobile_id number to be sent
     // over the wire via UDP
-    let id_buf = unsafe {
+    let mobile_id_buf = unsafe {
         std::mem::transmute::<u32, [u8; 4]>(mobile_id)
     };
 
     // Loops are simple in Rust
+    let mut job_id_count = 0;
     loop {
-        // Random number between 500 and 3500 for milliseconds to send to the server
         let random = rand::thread_rng().gen_range(MIN_JOB_TIME_MS, MAX_JOB_TIME_MS);
         // Same as previous unsafe call, this one is nested in the loop cause it changes
         // every cycle, no need to do that for the mobile_id, it doesn't change
@@ -82,18 +82,25 @@ fn main() -> std::io::Result<()> {
             std::mem::transmute::<u32, [u8; 4]>(random)
         };
 
-        // We create a buffer of size 8 and populate it with the mobile_id and the random time
-        // Buf will then be sent over the wire
-        let mut buf : [u8; 8] = [0; 8];
+        let job_id_buf = unsafe {
+            job_id_count += 1;
+            std::mem::transmute::<u32, [u8; 4]>(job_id_count)
+        };
+
+        // We create a buffer of size 12 and populate it with the mobile_id, job_id and the random time.
+        // This Buf will then be sent over the wire
+        let mut buf : [u8; 12] = [0; 12];
         for i in 0..buf.len() {
             if i < 4 {
-                buf[i] = id_buf[i];
+                buf[i] = mobile_id_buf[i];
+            } else if i < 8 {
+                buf[i] = job_id_buf[i - 4];
             } else {
-                buf[i] = time_buf[i - 4];
+                buf[i] = time_buf[i - 8];
             }
         }
 
-        println!("Sending job that will take {} milliseconds", random);
+        println!("Sending job {} that will take {} milliseconds", job_id_count, random);
         // Off we go!
         socket.send_to(&buf, endpoint)?;
         let sleep_rand = rand::thread_rng().gen_range(MIN_SLEEP_TIME_MS, MAX_SLEEP_TIME_MS);
