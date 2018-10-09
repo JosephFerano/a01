@@ -91,7 +91,6 @@ fn main() -> std::io::Result<()> {
                     // Return to the back of the queue, since it hasn't finished processing
                     q.push_back(mm);
                     // Release the semaphore because we didn't pop
-                    full_sem_ref.release();
                     (mm.clone() , false)
                 }
             };
@@ -100,6 +99,9 @@ fn main() -> std::io::Result<()> {
                 println!("    ---Consumer--- Releasing full, leaving critical region");
                 empty_sem_ref.release();
                 println!("    ---Consumer--- Full Released");
+            } else {
+                // Queue has same size so release the full semaphore
+                full_sem_ref.release();
             }
             println!("---Consumer--- Processing job {} for MobileId {} for {} ms",
                 mm.job_id,
