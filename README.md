@@ -1,13 +1,13 @@
-### Consumer/Producer in Rust for CCOM4017
+## Consumer/Producer in Rust for CCOM4017
 
 The code is organized into 3 files; `client.rs`, `server.rs`, and `lib.rs`. Rust automagically generates binaries for client and server, lib simply has a small amount of shared code.
 
-##### Server
+#### Server
 
 To run the server, run
 ```./server <IP> <PORT>```
 
-##### Client
+#### Client
 
 For the client, run
 ```./client <MOBILE_ID> <IP> <SERVER_PORT> <CLIENT_PORT>```
@@ -16,7 +16,7 @@ The client port is needed because multiple clients need to bind to their own por
 
 Run as many of clients as you want, so long as the ports are different.
 
-##### Building
+#### Building
 
 If you wish to compile the code, install rust and cargo
 Link(https://www.rust-lang.org/en-US/install.html)
